@@ -23,7 +23,6 @@ def getHomeValue():
 
 @app.get("/allBooks")
 def getAllBooks():
-    print("returning books....")
     return books
 
 @app.get("/book/{title}/")
@@ -34,18 +33,34 @@ def getBookAuthor(title, author):
         
 @app.post("/book/addBook")
 def addBook(book:model.Books):
-    books.append(book)
+    # books.append(book)
+    newBook = model.Books(**book.model_dump())
+    books.append(newBook)
     return {
         "message":"Book created",
         "data": books
     }
 
-# @app.put('/book/updateBook')
-# def updateBook(book:Book):
-#     # here we can write update function
-#     return
+@app.put('/book/updateBook')
+def updateBook(book:model.Books):
+    # here we can write update function
+    for index,bookVal in enumerate(books):
+        if bookVal.id == book.id:
+            books[index] = book
+            return books
 
-# @app.delete('/book/deleteBook')
-# def updateBook(book:Book):
-#     # here we can write delete function
-#     return
+    return {
+        "messsage":"Books not found"
+    }
+
+@app.delete('/book/deleteBook')
+def updateBook(book:model.Books):
+    # here we can write update function
+    for index,bookVal in enumerate(books):
+        if bookVal.id == book.id:
+            books.pop(index)
+            return books
+
+    return {
+        "messsage":"Books not found"
+    }

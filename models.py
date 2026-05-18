@@ -1,12 +1,14 @@
-from pydantic import BaseModel
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class Books(BaseModel):
-    id:int
-    title:str
-    author:str
+    id:Optional[int] = None
+    title:str = Field(max_length=10)
+    author:str = Field(max_length=10)
     description:str
-    rating:int
+    rating:int = Field(lt=6, gt=-1)
 
     # def __init__(self, id, title, author, description, rating):
     #     self.id = id
