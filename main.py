@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Path, Query, HTTPException
 from pydantic import BaseModel
 import models as model
+
 
 app = FastAPI()
 
@@ -26,7 +27,7 @@ def getAllBooks():
     return books
 
 @app.get("/book/{title}/")
-def getBookAuthor(title, author):
+def getBookAuthor(title:str = Path(max_length=5), author:str = Query(min_length=3)):
     for book in books:
         if book.title == title and book.author == author:
             return book
@@ -48,10 +49,8 @@ def updateBook(book:model.Books):
         if bookVal.id == book.id:
             books[index] = book
             return books
-
-    return {
-        "messsage":"Books not found"
-    }
+        
+    raise HTTPException(status_code = 404, detail = "id not found")
 
 @app.delete('/book/deleteBook')
 def updateBook(book:model.Books):
