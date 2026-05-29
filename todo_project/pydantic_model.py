@@ -4,3 +4,11 @@ class Book_req(BaseModel):
     description: str
     priority: int
     complete: bool
+
+class User_req(BaseModel):
+    username: str
+    email: str
+    first_name: str
+    last_name: str
+    hashed_password: str
+    role: str
