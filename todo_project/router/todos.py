@@ -5,6 +5,7 @@ import models
 import pydantic_model
 from database import engine, sessionLocal
 from sqlalchemy.orm import Session
+from .auth import get_current_user
 
 router = APIRouter()
 
@@ -18,88 +19,96 @@ def getDb():
 dbObject = Annotated[Session, Depends(getDb)]
 
 @router.get("/getAllTodos")
-def getAllTodos(db: dbObject ):
-    return db.query(models.Todos).all()
+def getAllTodos(db: dbObject , user = Depends(get_current_user)):
+    print("this is user id", user)
+    return db.query(models.Todos).filter(models.Todos.owner_id == user.get("user_id")).all()
 
-@router.get("/book/{book_id}")
-def getBookById(db:dbObject, book_id:int = Path(gt=0)):
-    book = db.query(models.Todos).filter(
-        models.Todos.id == book_id
+@router.get("/todo/{todo_id}")
+def getBookById(db:dbObject, todo_id:int = Path(gt=0), user = Depends(get_current_user)):
+    todo = db.query(models.Todos).filter(
+        models.Todos.id == todo_id,
+        models.Todos.owner_id == user.get("user_id")
     ).first()
 
-    if book is None:
+    if todo is None:
         raise HTTPException(
             status_code = 404,
             detail = "Book not found"
         )
-    return book
+    return todo
 
-@router.post("/book/addBook")
-def addBook(db: dbObject, bookDetails:pydantic_model.Book_req):
-    try:
-        newBook = models.Todos(**bookDetails.model_dump())
-        db.add(newBook)
+@router.post("/todo/addTodo")
+def addBook(db: dbObject, todoDetails:pydantic_model.todo_req, user = Depends(get_current_user)):
+    try: 
+        newTodo = models.Todos(**todoDetails.model_dump())
+        userInfo = db.query(models.Users).filter(models.Users.id == newTodo.owner_id).first()
+        if userInfo is None:
+            raise HTTPException(
+                status_code = 500,
+                detail = f"user not found:{str(e)}"
+            )
+        db.add(newTodo)
         db.commit()
-        db.refresh(newBook)
+        db.refresh(newTodo)
         return {
-            'book':newBook,
+            'todo':newTodo,
             'status_code':200,
-            'message':'Book added successfully'
+            'message':'todo added successfully'
             }
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code = 500,
-            detail = f"Error creating book:{str(e)}"
+            detail = f"Error creating todo:{str(e)}"
         )
     
-@router.put("/book/updateBook/{book_id}")
-def updateBook(db:dbObject, book_req:pydantic_model.Book_req, book_id:int):
+@router.put("/todo/updateTodo/{todo_id}")
+def updateBook(db:dbObject, todo_req:pydantic_model.todo_req, todo_id:int, user = Depends(get_current_user)):
     try:
-        existing_book = db.query(models.Todos).filter(models.Todos.id == book_id).first()
-        if existing_book is None:
+        existing_todo = db.query(models.Todos).filter(models.Todos.id == todo_id, models.Todos.owner_id == user.get("user_id")).first()
+        if existing_todo is None:
             raise HTTPException(
                 status = 404,
-                message = "Book not found"
+                message = "todo not found"
             )
-        update_data = book_req.model_dump()
+        update_data = todo_req.model_dump()
         for key,value in update_data.items():
-            setattr(existing_book, key, value)
+            setattr(existing_todo, key, value)
         
         db.commit()
-        db.refresh(existing_book)
+        db.refresh(existing_todo)
         return {
-            'book':existing_book,
+            'todo':existing_todo,
             'status_code':200,
-            'message':'Book updated successfully'
+            'message':'todo updated successfully'
             }
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code = 500,
-            detail = f"Error updating book:{str(e)}"
+            detail = f"Error updating todo:{str(e)}"
         )
 
-@router.delete("/book/delete/{book_id}")
-def updateBook(db:dbObject, book_id:int):
+@router.delete("/todo/delete/{todo_id}")
+def updateBook(db:dbObject, todo_id:int, user = Depends(get_current_user)):
     try:
-        existing_book = db.query(models.Todos).filter(models.Todos.id == book_id).first()
-        if existing_book is None:
+        existing_todo = db.query(models.Todos).filter(models.Todos.id == todo_id, models.Todos.owner_id == user.get("user_id")).first()
+        if existing_todo is None:
             raise HTTPException(
                 status = 404,
-                message = "Book not found"
+                message = "todo not found"
             )
-        db.delete(existing_book)
+        db.delete(existing_todo)
         db.commit()
         return {
             'status_code':200,
-            'message':'Book deleted successfully'
+            'message':'todo deleted successfully'
             }
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code = 500,
-            detail = f"Error deleting book:{str(e)}"
+            detail = f"Error deleting todo:{str(e)}"
         )
     
 
