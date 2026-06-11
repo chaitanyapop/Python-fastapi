@@ -13,6 +13,7 @@ class User_req(BaseModel):
     last_name: str
     hashed_password: str
     role: str
+    mobile_number: str
 
 class Token_res(BaseModel):
     access_token: str
